@@ -48,7 +48,11 @@ These user-facing surfaces have no feature file and no `prove.sh` checkpoint yet
 - Side panel width handle ("Side panel width"), `apps/desktop/src/features/workbench/workbench-resize-handle.tsx`; core `workbench-tabs.spec.ts`.
 - Find in thread on Cmd/Ctrl+F (also in Cmd-K), `apps/desktop/src/app/use-desktop-commands.ts`; core `timeline-viewport.spec.ts` (shortcut open/close and match highlight; the Cmd-K entry is not driven).
 
-## Latest observed proof (2026-10-14)
+## Latest observed proof (2026-10-21)
+
+Weekly maintenance pass, main still at `572c0c6` and this map unchanged since the 2026-10-14 source pass, so no new source pass. Linux cloud session (Xvfb). Smoke `run-KKLtEz` passed. Conversation `run-3NiOCG` was **blocked** at auth (`refresh_token_reused`, same saved credential), so the maintenance lane was not run and there is no real-provider proof. 34 fixture-backed core spec files passed 100/100 via `test:e2e:runner`: the 2026-10-07 set plus `model-change-keeps-draft`, `timeline-viewport`, `extensions-dialogs` and `extensions-session-isolation`.
+
+## Earlier observed proof (2026-10-14)
 
 Weekly maintenance pass, main still at `572c0c6`, Linux cloud session (Xvfb). Smoke `run-2LS29A` passed. Conversation `run-QLySMS` was **blocked** again at auth (`refresh_token_reused`), so the maintenance lane was not run and this pass has no real-provider proof. The same 30 fixture-backed core specs as 2026-10-07 passed 90/90 via `test:e2e:runner`, and core `model-change-keeps-draft.spec.ts` (1/1) and `timeline-viewport.spec.ts` (6/6) passed. The source pass found no wrong claims; it added three surfaces to the unmapped list above.
 
