@@ -723,7 +723,8 @@ export default function App() {
   });
   const sidebarDrawer = useNarrowSidebarDrawer(
     primarySidebarToggleVisible && snapshot?.sidebarCollapsed === false,
-    commands.togglePrimarySidebar,
+    commands.collapsePrimarySidebar,
+    `${snapshot?.activeView}:${selectedSessionKey}`,
   );
 
   useEffect(() => {

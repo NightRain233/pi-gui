@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  chooseThreadGrouping,
   createSessionViaIpc,
+  desktopShortcut,
   getDesktopState,
   launchDesktop,
   makeUserDataDir,
@@ -105,6 +107,14 @@ for (const width of NARROW_WIDTHS) {
       await expect(window.getByRole("menu", { name: "Customize Sidebar" })).toHaveCount(0);
       await expectDrawerOpen(window);
 
+      // So does the workspace actions menu, which has no menu role of its own.
+      await chooseThreadGrouping(window, "workspace");
+      await window.getByRole("button", { name: /^Workspace actions for / }).click();
+      await expect(window.locator(".workspace-menu")).toBeVisible();
+      await window.keyboard.press("Escape");
+      await expect(window.locator(".workspace-menu")).toHaveCount(0);
+      await expectDrawerOpen(window);
+
       // Clicking the backdrop closes the drawer.
       await window
         .getByTestId("sidebar-drawer-backdrop")
@@ -114,6 +124,18 @@ for (const width of NARROW_WIDTHS) {
       // Choosing a thread navigates to it and closes the drawer.
       await reopenDrawer(window);
       await selectSession(window, "Drawer thread two");
+      await expectDrawerClosed(window);
+
+      // Starting a new thread from the drawer closes it.
+      await reopenDrawer(window);
+      await window.locator(".sidebar").getByRole("button", { name: "New thread" }).first().click();
+      await expect(window.getByTestId("new-thread-composer")).toBeVisible();
+      await expectDrawerClosed(window);
+
+      // Navigating without the sidebar (thread shortcut) also closes it.
+      await reopenDrawer(window);
+      await window.keyboard.press(desktopShortcut("1"));
+      await expect(window.locator(".chat-header__title")).toHaveText(/Drawer thread/);
       await expectDrawerClosed(window);
 
       await reopenDrawer(window);

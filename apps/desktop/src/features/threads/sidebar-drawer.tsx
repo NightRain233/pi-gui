@@ -32,10 +32,15 @@ interface NarrowSidebarDrawer {
  * At the narrow breakpoint the expanded sidebar overlays the main surface, so it behaves as a
  * dismissible drawer: Escape closes it and returns focus to the toggle, and navigating from it
  * closes it. Wider windows keep the docked sidebar unchanged.
+ *
+ * `location` identifies what main shows. Any change to it (a sidebar link, a shortcut, the thread
+ * switcher or the command palette) closes the drawer; `thenDismiss` also covers a sidebar click
+ * on the location already shown.
  */
 export function useNarrowSidebarDrawer(
   expanded: boolean,
   collapse: () => void,
+  location: string,
 ): NarrowSidebarDrawer {
   const open = useMediaQuery(NARROW_SIDEBAR_QUERY) && expanded;
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -48,14 +53,25 @@ export function useNarrowSidebarDrawer(
       if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || event.repeat)
         return;
       // An open menu, rename field or dialog owns this Escape; the next one closes the drawer.
-      if (document.querySelector("[role='menu'], [aria-modal='true'], .sidebar input")) return;
+      const owner = "[role='menu'], [aria-haspopup][aria-expanded='true'], [aria-modal='true']";
+      if (document.querySelector(`${owner}, .sidebar input`)) return;
       event.preventDefault();
       collapseRef.current();
       toggleRef.current?.focus();
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    // Capture runs before the popups' own window listeners close them, so the check still sees them.
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [open]);
+
+  const openRef = useRef(open);
+  openRef.current = open;
+  const shownLocation = useRef(location);
+  useEffect(() => {
+    if (shownLocation.current === location) return;
+    shownLocation.current = location;
+    if (openRef.current) collapseRef.current();
+  }, [location]);
 
   const dismiss = () => {
     if (open) collapseRef.current();

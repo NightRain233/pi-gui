@@ -975,11 +975,7 @@
     box-shadow: var(--shadow-xl);
   }
 
-  /* Keep main's own layers below the drawer backdrop. */
-  .shell:not(.shell--sidebar-collapsed) > .main {
-    isolation: isolate;
-  }
-
+  /* Above main's persistent layers and below the drawer (40); dialog backdrops sit above both. */
   .sidebar-drawer-backdrop {
     -webkit-app-region: no-drag;
     position: absolute;
