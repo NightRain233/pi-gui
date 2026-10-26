@@ -93,6 +93,7 @@ import { useTreeForkModals } from "../features/conversation/hooks/use-tree-fork-
 import { useComposerDraftSync } from "../features/conversation/hooks/use-composer-draft-sync";
 import { useSessionComposer } from "../features/conversation/hooks/use-session-composer";
 import { useTranscriptAnnotations } from "../features/conversation/annotations/use-transcript-annotations";
+import { SidebarDrawerBackdrop, useNarrowSidebarDrawer } from "../features/threads/sidebar-drawer";
 
 export default function App() {
   const desktop = useDesktopAppState();
@@ -720,6 +721,10 @@ export default function App() {
     openExtensions,
     setActiveView,
   });
+  const sidebarDrawer = useNarrowSidebarDrawer(
+    primarySidebarToggleVisible && snapshot?.sidebarCollapsed === false,
+    commands.togglePrimarySidebar,
+  );
 
   useEffect(() => {
     const removeWorkspacePickedListener = window.piApp?.onWorkspacePicked?.((workspaceId) => {
@@ -963,6 +968,7 @@ export default function App() {
           collapsed={snapshot.sidebarCollapsed}
           shortcutLabel={sidebarToggleShortcutLabel}
           onToggle={commands.togglePrimarySidebar}
+          ref={sidebarDrawer.toggleRef}
         />
       ) : null}
       {!snapshot.sidebarCollapsed ? (
@@ -981,17 +987,17 @@ export default function App() {
           api={api}
           setSnapshot={setSnapshot}
           updateSnapshot={updateSnapshot}
-          onNewThread={(workspaceId) =>
+          onNewThread={sidebarDrawer.thenDismiss((workspaceId?: string) =>
             newThread.openSurface(
               workspaceId ?? selectedWorkspace?.rootWorkspaceId ?? selectedWorkspace?.id,
-            )
-          }
+            ),
+          )}
           onSetActiveView={setActiveView}
           onOpenSkills={openSkills}
           onOpenExtensions={openExtensions}
           onOpenSettings={openSettings}
           onArchiveSession={threadMenu.archive}
-          onSelectSession={handleSelectSession}
+          onSelectSession={sidebarDrawer.thenDismiss(handleSelectSession)}
           onSetSessionPinned={threadMenu.setPinned}
           onUnarchiveSession={threadMenu.restore}
         />
@@ -1413,6 +1419,7 @@ export default function App() {
           </Workbench>
         ) : null}
       </main>
+      <SidebarDrawerBackdrop drawer={sidebarDrawer} />
       {scheduledEditor ? (
         <ScheduledTaskEditor
           editor={scheduledEditor}
