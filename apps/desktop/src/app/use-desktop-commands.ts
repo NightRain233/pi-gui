@@ -153,6 +153,7 @@ export function useDesktopCommands(input: DesktopCommandsInput) {
     // A frame callback would not run while the window is hidden.
     flushSync(() => workbench.showChooser());
     document.querySelector<HTMLElement>('[data-testid="workbench-chooser"] button')?.focus();
+    return true;
   };
   const selectSidePanelTab = (index: number) => {
     const tool = sidePanelAvailable ? workbench.view.tools[index] : undefined;
