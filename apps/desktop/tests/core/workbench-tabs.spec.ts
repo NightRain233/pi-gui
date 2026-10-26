@@ -227,8 +227,6 @@ test("Cmd/Ctrl+T opens the Add tab chooser, and a new shell from the terminal", 
     await expect(window.getByTestId("command-palette")).toHaveCount(0);
     await expect(chooser).toBeVisible();
     await expect(tabs).toHaveText(["Review", "Files"]);
-    await expect(chooser).toBeVisible();
-    await expect(tabs).toHaveText(["Review", "Files"]);
     await chooser.getByRole("button", { name: "Terminal", exact: true }).click();
     await expectActiveTool(window, "Terminal");
 

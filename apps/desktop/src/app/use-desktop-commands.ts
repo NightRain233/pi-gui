@@ -7,6 +7,7 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
+import { flushSync } from "react-dom";
 import type {
   AppView,
   DesktopAppState,
@@ -148,10 +149,10 @@ export function useDesktopCommands(input: DesktopCommandsInput) {
       "[aria-modal='true']:not(.command-palette), .extension-dialog-backdrop",
     );
     if (!sidePanelAvailable || !workbench.ready || dialogOpen) return false;
-    workbench.showChooser();
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('[data-testid="workbench-chooser"] button')?.focus();
-    });
+    // Render the chooser now so its first choice can take focus in this press.
+    // A frame callback would not run while the window is hidden.
+    flushSync(() => workbench.showChooser());
+    document.querySelector<HTMLElement>('[data-testid="workbench-chooser"] button')?.focus();
   };
   const selectSidePanelTab = (index: number) => {
     const tool = sidePanelAvailable ? workbench.view.tools[index] : undefined;
