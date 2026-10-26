@@ -593,6 +593,8 @@
   align-items: center;
   min-height: 20px;
   font-size: 13px;
+  /* Hold the width steady as the elapsed seconds tick, like the header timer. */
+  font-variant-numeric: tabular-nums;
 }
 
 .timeline-working__label {
