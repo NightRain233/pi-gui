@@ -23,9 +23,8 @@ ZIP 与 DMG 包含相同应用。`SHA256SUMS.txt` 提供下载文件校验值。
 
 ## 验证范围
 
-构建流程检查实际 Mach-O 二进制的 Intel 架构及最低系统版本，验证打包后的运行时依赖，
-并在 GitHub 的 Intel Mac runner 上测试启动、新建会话、真实集成终端和 ZIP 解包运行。
-这些检查不等于已经完成 macOS Monterey 实机测试，仍需在目标机器上确认。
+构建流程在 GitHub 的 Intel Mac runner 上打包，检查实际 Mach-O 二进制的 Intel 架构及最低系统版本，
+并验证打包后的运行时依赖。此流程不运行 UI 或真实对话测试，需在目标机器上确认实际使用情况。
 首次使用建议检查：中文输入、回复流式显示、选中文字引用、Markdown、工具执行和停止。
 
 应用内的更新提示仍指向上游官方发布；Intel/Monterey 安装包请从本 fork 的 Releases 下载。

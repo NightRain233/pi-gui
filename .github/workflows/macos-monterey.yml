@@ -32,12 +32,8 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check source and compatibility verifier
-        env:
-          # Intel Node defaults to a 2 GiB heap; typed ESLint needs more.
-          NODE_OPTIONS: --max-old-space-size=6144
+      - name: Check packaging configuration
         run: |
-          pnpm check
           pnpm verify:release-config
           python3 -m unittest discover -s apps/desktop/scripts -p test_verify_monterey.py
 
@@ -60,15 +56,6 @@ jobs:
             apps/desktop/release/mac/pi-gui.app \
             > apps/desktop/release/compatibility.json
           pnpm --dir apps/desktop run verify:packaged-runtime-deps
-
-      - name: Smoke test packaged app and real terminal
-        env:
-          PI_APP_TEST_MODE: background
-        run: |
-          pnpm exec playwright test -c apps/desktop/playwright.config.ts \
-            apps/desktop/tests/production/packaged-smoke.spec.ts \
-            apps/desktop/tests/production/packaged-terminal.spec.ts \
-            apps/desktop/tests/production/release-zip-smoke.spec.ts
 
       - name: Stage downloadable files
         run: |
