@@ -41,6 +41,7 @@ import type {
   RemoveWorktreeInput,
   SendChildThreadFollowUpInput,
   SetChildSupervisionLoopInput,
+  SelectedTranscriptPatch,
   SelectedTranscriptRecord,
   SessionExtensionUiUpdate,
   StartThreadInput,
@@ -121,6 +122,7 @@ export const desktopIpc = {
   saveTaskWorkbenchTemplate: "pi-gui:save-task-workbench-template",
   selectedTranscriptRequest: "pi-gui:selected-transcript-request",
   selectedTranscriptChanged: "pi-gui:selected-transcript-changed",
+  selectedTranscriptResend: "pi-gui:selected-transcript-resend",
   extensionUiChanged: "pi-gui:extension-ui-changed",
   appCommand: "pi-gui:app-command",
   workspacePicked: "pi-gui:workspace-picked",
@@ -248,6 +250,7 @@ export const desktopCommands = {
   toggleTerminal: "toggle-terminal",
   toggleSidePanel: "toggle-side-panel",
   toggleReview: "toggle-review",
+  newSidePanelTab: "new-side-panel-tab",
   closeFocusedSurface: "close-focused-surface",
   toggleSidebar: "toggle-sidebar",
   openCommandPalette: "open-command-palette",
@@ -378,7 +381,7 @@ export function getSidePanelToggleShortcutLabel(platform: NodeJS.Platform): stri
 
 export type PiDesktopStateListener = (state: DesktopAppState) => void;
 export type PiDesktopSelectedTranscriptListener = (
-  payload: SelectedTranscriptRecord | null,
+  payload: SelectedTranscriptRecord | SelectedTranscriptPatch | null,
 ) => void;
 export type PiDesktopExtensionUiListener = (update: SessionExtensionUiUpdate) => void;
 export type PiDesktopCommand = (typeof desktopCommands)[keyof typeof desktopCommands];
@@ -593,6 +596,7 @@ export function getDesktopCommandFromShortcut(
   const isK = lowerKey === "k" || input.code === "KeyK";
   const isP = lowerKey === "p" || input.code === "KeyP";
   const isN = lowerKey === "n" || input.code === "KeyN";
+  const isT = lowerKey === "t" || input.code === "KeyT";
   const isShiftO = input.shift && (lowerKey === "o" || input.code === "KeyO");
   const isShiftR = input.shift && isR;
   const isShiftA = input.shift && (lowerKey === "a" || input.code === "KeyA");
@@ -626,6 +630,10 @@ export function getDesktopCommandFromShortcut(
 
   if (!input.shift && isP) {
     return desktopCommands.openFilePalette;
+  }
+
+  if (!input.shift && isT) {
+    return desktopCommands.newSidePanelTab;
   }
 
   if ((!input.shift && isN) || isShiftO) {
@@ -666,12 +674,14 @@ export function isPaletteCommand(command: PiDesktopCommand | undefined): boolean
  * Commands that act once per press and only from the platform modifier. macOS
  * Control chords stay with text fields, and off macOS the terminal keeps Control
  * chords. Holding Archive would otherwise archive each next thread in turn, and
- * holding Review would flicker the panel.
+ * holding Review would flicker the panel. New Tab is the exception in the terminal,
+ * where the shell keeps it to open another terminal.
  */
 export function isSinglePressCommand(command: PiDesktopCommand | undefined): boolean {
   return (
     isPaletteCommand(command) ||
     command === desktopCommands.toggleReview ||
+    command === desktopCommands.newSidePanelTab ||
     command === desktopCommands.renameThread ||
     command === desktopCommands.archiveThread
   );
@@ -707,6 +717,7 @@ export interface PiDesktopApi {
   onStateChanged(listener: PiDesktopStateListener): () => void;
   getSelectedTranscript(): Promise<SelectedTranscriptRecord | null>;
   onSelectedTranscriptChanged(listener: PiDesktopSelectedTranscriptListener): () => void;
+  resendSelectedTranscript(): void;
   onExtensionUiChanged(listener: PiDesktopExtensionUiListener): () => void;
   onCommand(listener: (command: PiDesktopCommand) => void): () => void;
   onWorkspacePicked(listener: (workspaceId: string) => void): () => void;
