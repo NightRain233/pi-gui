@@ -34,10 +34,14 @@ pnpm i18n:check fr              # lists keys that are missing or still read Engl
 pnpm i18n:check                 # the same report for every non-English catalog
 ```
 
-`i18n:new` writes `messages/fr.ts` (every key, English values, as a starting point)
-and registers the locale in `catalog.ts`. Translate the values; delete any entry you
-do not translate rather than leaving it in English. `i18n:check` is a report, not a
-gate: it always exits 0 and is not part of `pnpm check`.
+`i18n:new` writes `messages/fr.ts` (every plain key, English values, as a starting
+point) and registers the locale in `catalog.ts`. Translate the values; delete any entry
+you do not translate rather than leaving it in English. `i18n:check` is a report, not
+a gate: it exits 0 however much is untranslated and is not part of `pnpm check`.
+
+The scaffolded matcher claims every tag with the same primary language. A
+script- or region-specific locale (`zh-Hant`, `pt-PT`) must sit ahead of the broader
+one in `LOCALES` and match on `script` or `region`, since the first match wins.
 
 Doing it by hand is the same two edits: write `messages/<tag>.ts`, then import it and
 add one `LOCALES` entry. The Settings picker, system-language detection, the `t()`
@@ -64,8 +68,10 @@ active locale defined, so:
 - A language whose grammar has one category (Chinese, Japanese) translates only the
   plain key; every count then reuses it.
 - A language with `few` / `many` (Russian, Polish, Arabic) adds those suffixes.
+  `Messages` accepts any CLDR category for a key English gives plural forms to.
 
-A key with no plural variants ignores `count`, so adding plurals to existing copy is
+When a locale has no copy for a counted key, the English copy is picked with English
+plural rules. A key with no plural variants ignores `count`, so adding plurals to existing copy is
 never a breaking change.
 
 ## Dates, times and numbers
@@ -83,7 +89,11 @@ language the app is showing. Pass `locale` from `useTranslation()` to `Intl`.
 - Set `dir: "rtl"` on the `LOCALES` entry for a right-to-left language; the provider
   mirrors it onto `<html dir>`.
 - `tests/unit/i18n.spec.ts` enforces unique ids, tag shape, no keys that English does
-  not have, and placeholders matching English.
+  not have, and placeholders matching English. `tests/unit/renderer-copy.spec.ts`
+  fails on literal English in the JSX of translated surfaces; add a surface there once
+  it is translated.
+- The provider follows a choice made in another window (`storage` event) and an OS
+  language change while the preference is `"system"` (`languagechange`).
 
 ## Coverage
 

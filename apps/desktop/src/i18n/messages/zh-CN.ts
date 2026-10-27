@@ -107,11 +107,11 @@ export const zhCN: Partial<Messages> = {
   "ui.needsAttention": "需要处理",
   "ui.yourDefaultModelUsesThisProviderButItIsNotConnected":
     "默认模型使用此提供方，但目前尚未连接。",
-  "ui.connected": "已连接 ",
+  "ui.connected": "已连接",
   "ui.piPicksModelsFromConnectedProvidersFirst": "pi 优先选择已连接提供方的模型。",
   "ui.noProvidersConnectedYetSignInOrAddAnAPIKeyBelow":
     "尚未连接提供方，请在下方登录或添加 API 密钥。",
-  "ui.available": "可用提供方 ",
+  "ui.available": "可用提供方",
   "ui.searchProviders": "搜索提供方",
   "ui.signInWithOAuthOrSaveAnAPIKeyToConnectA": "通过 OAuth 登录或保存 API 密钥以连接提供方。",
   "ui.noProvidersMatchValue": "没有与“{value}”匹配的提供方。",
@@ -121,7 +121,7 @@ export const zhCN: Partial<Messages> = {
   "ui.enterAPIKey": "输入 API 密钥",
   "ui.removeSavedKey": "移除已保存的密钥",
   "ui.saveKey": "保存密钥",
-  "app.workspaceEyebrow": "工作区",
+  "settings.workspace.label": "工作区",
   "secondarySurface.backToApp": "返回应用",
   "secondarySurface.sectionsLabel": "{title} 分区",
   "secondarySurface.searchLabel": "搜索{title}",
@@ -261,7 +261,7 @@ export const zhCN: Partial<Messages> = {
   "settings.provider.action.login": "登录",
   "settings.provider.action.manage": "管理",
   "settings.provider.action.setApiKey": "设置 API 密钥",
-  "sidebar.workspace.remove": "移除",
-  "scheduledTasks.row.edit": "编辑",
-  "scheduledTasks.editor.cancel": "取消",
+  "settings.common.remove": "移除",
+  "settings.common.edit": "编辑",
+  "settings.common.cancel": "取消",
 };

@@ -4,7 +4,7 @@
  * leaves out renders this copy. Keys are dotted and flat (no nesting) so
  * `t("settings.nav.general")` stays a checked literal.
  */
-import type { PluralVariantKey } from "../plural";
+import type { PluralCategory, PluralVariantKey } from "../plural";
 
 export const en = {
   "models.enabledCount": "{enabled} of {total}",
@@ -114,11 +114,11 @@ export const en = {
   "ui.needsAttention": "Needs attention",
   "ui.yourDefaultModelUsesThisProviderButItIsNotConnected":
     "Your default model uses this provider, but it is not connected.",
-  "ui.connected": "Connected ",
+  "ui.connected": "Connected",
   "ui.piPicksModelsFromConnectedProvidersFirst": "pi picks models from connected providers first.",
   "ui.noProvidersConnectedYetSignInOrAddAnAPIKeyBelow":
     "No providers connected yet. Sign in or add an API key below.",
-  "ui.available": "Available ",
+  "ui.available": "Available",
   "ui.searchProviders": "Search providers",
   "ui.signInWithOAuthOrSaveAnAPIKeyToConnectA":
     "Sign in with OAuth or save an API key to connect a provider.",
@@ -129,7 +129,7 @@ export const en = {
   "ui.enterAPIKey": "Enter API key",
   "ui.removeSavedKey": "Remove saved key",
   "ui.saveKey": "Save key",
-  "app.workspaceEyebrow": "Workspace",
+  "settings.workspace.label": "Workspace",
   "secondarySurface.backToApp": "Back to app",
   "secondarySurface.sectionsLabel": "{title} sections",
   "secondarySurface.searchLabel": "Search {title}",
@@ -280,9 +280,9 @@ export const en = {
   "settings.provider.action.login": "Login",
   "settings.provider.action.manage": "Manage",
   "settings.provider.action.setApiKey": "Set API key",
-  "sidebar.workspace.remove": "Remove",
-  "scheduledTasks.row.edit": "Edit",
-  "scheduledTasks.editor.cancel": "Cancel",
+  "settings.common.remove": "Remove",
+  "settings.common.edit": "Edit",
+  "settings.common.cancel": "Cancel",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -290,10 +290,24 @@ export type MessageKey = keyof typeof en;
 /** The plain messages, without plural variants. */
 export type RequiredMessageKey = Exclude<MessageKey, PluralVariantKey>;
 
+/** Keys English gives plural forms to, e.g. `models.count` for `models.count_one`. */
+type PluralBaseKey = MessageKey extends infer Key
+  ? Key extends `${infer Base}_${PluralCategory}`
+    ? Base
+    : never
+  : never;
+
+/**
+ * A plural form of one of those keys in any CLDR category, so a language with
+ * `few` or `many` (Russian, Polish, Arabic) can add forms English does not have.
+ */
+export type PluralFormKey = `${PluralBaseKey}_${PluralCategory}`;
+
 /**
  * Every plain key, values widened to `string`. Plural variants (`key_one`,
  * `key_few`, …) are optional because a language only defines the categories its
  * grammar has; `translate.ts` reuses the plain key for the ones it leaves out.
  * Other locales are typed `Partial<Messages>` and fall back to English.
  */
-export type Messages = Record<RequiredMessageKey, string> & Partial<Record<MessageKey, string>>;
+export type Messages = Record<RequiredMessageKey, string> &
+  Partial<Record<MessageKey | PluralFormKey, string>>;

@@ -37,7 +37,11 @@ const sourceRoot = resolve(__dirname, "../../src");
  * Surfaces that are fully translated. A directory entry covers every `.tsx` file in
  * it, so a new Settings section is checked without anyone adding it here.
  */
-const translatedSurfaces = ["features/settings", "app/secondary-surface.tsx"];
+const translatedSurfaces = [
+  "features/settings",
+  "app/secondary-surface.tsx",
+  "app/secondary-surfaces.tsx",
+];
 
 async function surfaceFiles(): Promise<readonly string[]> {
   const files: string[] = [];

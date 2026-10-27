@@ -38,12 +38,14 @@ function fail(message) {
  * wrapper. Prettier wraps long entries onto a second line, so the value may sit
  * after a newline — read the file as a whole rather than line by line.
  */
-const ENTRY_PATTERN = /^ {2}"((?:[^"\\]|\\.)*)":\s*"((?:[^"\\]|\\.)*)",?$/gm;
+const ENTRY_PATTERN =
+  /^ {2}"((?:[^"\\]|\\.)*)":\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'),?$/gm;
 
 function readEntries(source) {
   const entries = [];
   for (const match of source.matchAll(ENTRY_PATTERN)) {
-    entries.push({ key: match[1], copy: match[2], text: match[0] });
+    // Prettier single-quotes a value that contains a double quote.
+    entries.push({ key: match[1], copy: match[2] ?? match[3], text: match[0] });
   }
   return entries;
 }
@@ -70,22 +72,22 @@ function reportUntranslated(tag) {
     fail(`No catalog for "${tag}" at ${messagesPath}.`);
     return;
   }
-  // Plural variants (`key_one`, …) are optional per language: translating the plain
-  // key covers every count in a language with fewer plural forms than English.
-  const english = readEntries(readFileSync(englishPath, "utf8")).filter(
-    (entry) => !PLURAL_VARIANT.test(entry.key),
-  );
+  const english = readEntries(readFileSync(englishPath, "utf8"));
   const translated = new Map(
     readEntries(readFileSync(messagesPath, "utf8")).map((entry) => [entry.key, entry.copy]),
   );
-  const missing = english.filter((entry) => !translated.has(entry.key));
+  // Plural variants (`key_one`, …) are optional per language, since the plain key
+  // covers every count. A variant still holding English copy is reported, though:
+  // at runtime it wins over the translated plain key.
+  const plainKeys = english.filter((entry) => !PLURAL_VARIANT.test(entry.key));
+  const missing = plainKeys.filter((entry) => !translated.has(entry.key));
   const untouched = english.filter((entry) => translated.get(entry.key) === entry.copy);
   const pending = missing.length + untouched.length;
   if (pending === 0) {
     console.log(`${tag}: every key is translated.`);
     return;
   }
-  console.log(`${tag}: ${pending} of ${english.length} keys still read English:`);
+  console.log(`${tag}: ${pending} keys still read English:`);
   for (const entry of missing) {
     console.log(`  ${entry.key}  (missing)  ←  ${entry.copy}`);
   }
@@ -131,22 +133,10 @@ function createLocale(tag, label) {
   }
 
   const name = variableName(tag);
-  const entries = asObjectEntries(english);
-  writeFileSync(
-    messagesPath,
-    `import type { Messages } from "./en";
-
-/*
- * ${label} copy, scaffolded from English as a template. Replace each value, and
- * delete entries you do not translate: a missing key renders the English copy.
- * \`pnpm i18n:check ${tag}\` lists what still reads English.
- */
-export const ${name}: Partial<Messages> = {
-${entries}
-};
-`,
-  );
-
+  // Plural variants are left out: the plain key covers every count until the
+  // translator adds the forms the language uses, and a copied English variant would
+  // win over a translated plain key.
+  const entries = asObjectEntries(english.filter((entry) => !PLURAL_VARIANT.test(entry.key)));
   const importLine = `import { ${name} } from "./messages/${tag}";`;
   const lastImport = /^import .* from "\.\/messages\/[^"]+";$/m;
   const importMatches = [...catalog.matchAll(new RegExp(lastImport, "gm"))];
@@ -168,11 +158,27 @@ ${entries}
   const entry = [
     "  {",
     `    id: "${tag}",`,
-    `    label: "${label}",`,
+    `    label: ${JSON.stringify(label)},`,
     `    messages: ${name},`,
     `    matchesSystemTag: (languageTag) => languageTagParts(languageTag).primary === "${tag.split("-")[0]}",`,
     "  },",
   ].join("\n");
+  // Both edits are checked before either file is written, so a failure leaves nothing behind.
+  writeFileSync(
+    messagesPath,
+    `import type { Messages } from "./en";
+
+/*
+ * ${label} copy, scaffolded from English as a template. Replace each value, and
+ * delete entries you do not translate: a missing key renders the English copy.
+ * \`pnpm i18n:check ${tag}\` lists what still reads English.
+ */
+export const ${name}: Partial<Messages> = {
+${entries}
+};
+`,
+  );
+
   writeFileSync(catalogPath, afterImports.replace(registryEnd, `\n${entry}${registryEnd}`));
 
   console.log(`Created ${messagesPath}`);
