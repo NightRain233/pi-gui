@@ -41,6 +41,7 @@ import type {
   RemoveWorktreeInput,
   SendChildThreadFollowUpInput,
   SetChildSupervisionLoopInput,
+  SelectedTranscriptPatch,
   SelectedTranscriptRecord,
   SessionExtensionUiUpdate,
   StartThreadInput,
@@ -121,6 +122,7 @@ export const desktopIpc = {
   saveTaskWorkbenchTemplate: "pi-gui:save-task-workbench-template",
   selectedTranscriptRequest: "pi-gui:selected-transcript-request",
   selectedTranscriptChanged: "pi-gui:selected-transcript-changed",
+  selectedTranscriptResend: "pi-gui:selected-transcript-resend",
   extensionUiChanged: "pi-gui:extension-ui-changed",
   appCommand: "pi-gui:app-command",
   workspacePicked: "pi-gui:workspace-picked",
@@ -379,7 +381,7 @@ export function getSidePanelToggleShortcutLabel(platform: NodeJS.Platform): stri
 
 export type PiDesktopStateListener = (state: DesktopAppState) => void;
 export type PiDesktopSelectedTranscriptListener = (
-  payload: SelectedTranscriptRecord | null,
+  payload: SelectedTranscriptRecord | SelectedTranscriptPatch | null,
 ) => void;
 export type PiDesktopExtensionUiListener = (update: SessionExtensionUiUpdate) => void;
 export type PiDesktopCommand = (typeof desktopCommands)[keyof typeof desktopCommands];
@@ -715,6 +717,7 @@ export interface PiDesktopApi {
   onStateChanged(listener: PiDesktopStateListener): () => void;
   getSelectedTranscript(): Promise<SelectedTranscriptRecord | null>;
   onSelectedTranscriptChanged(listener: PiDesktopSelectedTranscriptListener): () => void;
+  resendSelectedTranscript(): void;
   onExtensionUiChanged(listener: PiDesktopExtensionUiListener): () => void;
   onCommand(listener: (command: PiDesktopCommand) => void): () => void;
   onWorkspacePicked(listener: (workspaceId: string) => void): () => void;
