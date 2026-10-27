@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { EditorService } from "../../electron/platform/editors/editor-service";
+import { EditorService, launchEditorCommand } from "../../electron/platform/editors/editor-service";
 import {
   buildEditorLaunchCommand,
   detectDefaultEditorId,
@@ -214,6 +214,28 @@ test("Windows detection finds the editors with known install paths", async () =>
   ]);
 });
 
+test("Windows detection finds Android Studio's default Program Files install", async () => {
+  const editors = await detectInstalledEditors(
+    host({
+      platform: "win32",
+      homeDir: "C:\\Users\\dev",
+      env: {
+        LOCALAPPDATA: "C:\\Users\\dev\\AppData\\Local",
+        ProgramFiles: "C:\\Program Files",
+        PATH: "",
+      },
+      exists: (candidate) =>
+        candidate === "C:\\Program Files\\Android\\Android Studio\\bin\\studio64.exe",
+    }),
+  );
+
+  expect(ids(editors)).toEqual(["android-studio"]);
+  expect(editors[0]?.launch).toEqual({
+    kind: "command",
+    commandPath: "C:\\Program Files\\Android\\Android Studio\\bin\\studio64.exe",
+  });
+});
+
 test("Windows detection ignores a .cmd shim on PATH", async () => {
   const editors = await detectInstalledEditors(
     host({
@@ -292,6 +314,7 @@ test("launch commands hand the checkout to each launch kind", async () => {
   ).toEqual({
     command: "open",
     args: ["-a", "/Applications/Visual Studio Code.app", workspacePath],
+    waitForExit: true,
   });
   expect(
     buildEditorLaunchCommand(
@@ -303,7 +326,7 @@ test("launch commands hand the checkout to each launch kind", async () => {
       },
       workspacePath,
     ),
-  ).toEqual({ command: "/usr/bin/cursor", args: [workspacePath] });
+  ).toEqual({ command: "/usr/bin/cursor", args: [workspacePath], waitForExit: false });
   expect(
     buildEditorLaunchCommand(
       {
@@ -322,7 +345,40 @@ test("launch commands hand the checkout to each launch kind", async () => {
   ).toEqual({
     command: "gio",
     args: ["launch", "/usr/share/applications/dev.zed.Zed.desktop", workspacePath],
+    waitForExit: true,
   });
+});
+
+/** A real child process that writes `stderr` and exits with `code`. */
+function nodeExiting(code: number, stderr = ""): { command: string; args: readonly string[] } {
+  return {
+    command: process.execPath,
+    args: ["-e", `process.stderr.write(${JSON.stringify(stderr)}); process.exit(${code});`],
+  };
+}
+
+test("a launcher that exits non-zero fails the launch with its error output", async () => {
+  await expect(
+    launchEditorCommand({ ...nodeExiting(1, "Unable to find application"), waitForExit: true }),
+  ).rejects.toThrow(/exit code 1: Unable to find application/);
+});
+
+test("a launcher that exits zero succeeds", async () => {
+  await expect(launchEditorCommand({ ...nodeExiting(0), waitForExit: true })).resolves.toBe(
+    undefined,
+  );
+});
+
+test("an editor process succeeds once it starts, whatever it does afterwards", async () => {
+  await expect(launchEditorCommand({ ...nodeExiting(1), waitForExit: false })).resolves.toBe(
+    undefined,
+  );
+});
+
+test("a launch that cannot start fails", async () => {
+  await expect(
+    launchEditorCommand({ command: "/nonexistent/pi-gui-editor", args: [], waitForExit: true }),
+  ).rejects.toThrow(/ENOENT/);
 });
 
 const detectedEditor: DetectedEditor = {
@@ -505,7 +561,7 @@ test("EditorService opens a known editor and remembers it as the preference", as
   const service = new EditorService({
     detect: async () => [detectedEditor],
     detectDefault: async () => undefined,
-    launch: (command, args) => {
+    launch: ({ command, args }) => {
       launches.push({ command, args });
       return Promise.resolve();
     },
