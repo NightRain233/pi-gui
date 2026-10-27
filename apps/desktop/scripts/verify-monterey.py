@@ -28,6 +28,12 @@ def check_macos_target(load_commands):
     return version
 
 
+def check_binary(candidate):
+    subprocess.run(["lipo", str(candidate), "-verify_arch", "x86_64"], check=True)
+    commands = subprocess.check_output(["otool", "-arch", "x86_64", "-l", str(candidate)], text=True)
+    return check_macos_target(commands)
+
+
 def verify_bundle(bundle):
     contents = bundle / "Contents"
     with (contents / "Info.plist").open("rb") as source:
@@ -48,10 +54,8 @@ def verify_bundle(bundle):
             magic = source.read(4)
         if magic not in (b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
             continue
-        subprocess.run(["lipo", "-verify_arch", "x86_64", str(candidate)], check=True)
-        commands = subprocess.check_output(["otool", "-arch", "x86_64", "-l", str(candidate)], text=True)
         try:
-            minimum = check_macos_target(commands)
+            minimum = check_binary(candidate)
         except ValueError as error:
             raise ValueError(f"{candidate.relative_to(bundle)}: {error}") from error
         binaries.append({"file": str(candidate.relative_to(bundle)), "minimumMacOS": minimum})

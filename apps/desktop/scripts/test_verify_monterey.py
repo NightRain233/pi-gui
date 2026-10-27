@@ -1,4 +1,7 @@
 import unittest
+import subprocess
+import sys
+import tempfile
 
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
@@ -9,6 +12,13 @@ spec.loader.exec_module(verifier)
 
 
 class MacOSCompatibilityTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "darwin", "requires Apple's native build tools")
+    def test_inspects_a_real_intel_monterey_binary(self):
+        executable = Path(tempfile.mkdtemp(prefix="pi-gui-monterey-probe-")) / "probe"
+        subprocess.run(["xcrun", "clang", "-target", "x86_64-apple-macos12.0", "-x", "c", "-o", str(executable), "-"],
+                       input="int main(void) { return 0; }", text=True, check=True)
+        self.assertEqual(verifier.check_binary(executable), "12.0")
+
     def test_accepts_monterey_build_version(self):
         self.assertEqual(verifier.check_macos_target("cmd LC_BUILD_VERSION\nplatform 1\nminos 12.0\nsdk 15.5"), "12.0")
 
