@@ -1,8 +1,8 @@
 /**
  * Images a tool returned in its result content. pi stores each as an `{ type: "image", data,
  * mimeType }` block. Main keeps the data and gives the window a `pi-gui-image://` URL for each
- * image it can show; the window shows no other image source, so a tool result can't make it load a
- * remote or local file.
+ * image it can show. A tool row shows no other image source, so a tool result's image blocks can't
+ * make it load a remote or local file.
  */
 
 /** Scheme main serves tool-output images on, so their data isn't sent with the transcript. */

@@ -75,7 +75,10 @@ function messageForWindow(sessionRef: SessionRef, message: TranscriptMessage): T
           isShownToolImageData(block)
             ? { type: "image", mimeType: block.mimeType, src: url(index) }
             : isToolImageBlock(block)
-              ? { type: "image", mimeType: block.mimeType }
+              ? {
+                  type: "image",
+                  ...(typeof block.mimeType === "string" ? { mimeType: block.mimeType } : {}),
+                }
               : block,
         ),
       },

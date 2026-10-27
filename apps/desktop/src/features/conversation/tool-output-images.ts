@@ -1,5 +1,10 @@
 import { isShownToolImageUrl, isToolImageBlock } from "../../../contracts/tool-output-images";
 
+/** An image block that still carries data or a URL, wherever it sits in a tool's input or output. */
+function carriesImage(value: unknown): value is { type: "image"; mimeType?: unknown } {
+  return isToolImageBlock(value) && ("data" in value || "src" in value);
+}
+
 /**
  * Images a tool returned in its result content, such as the read tool on a screenshot or a code
  * mode script calling `image()` with `models.generateImages()`. Main sends each one the window can
@@ -23,7 +28,7 @@ export function stringifyToolValue(value: unknown): string {
   return JSON.stringify(
     value,
     (_key, nested: unknown) =>
-      isToolImageBlock(nested)
+      carriesImage(nested)
         ? {
             ...nested,
             src: undefined,
