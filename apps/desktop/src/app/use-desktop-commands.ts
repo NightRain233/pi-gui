@@ -172,19 +172,27 @@ export function useDesktopCommands(input: DesktopCommandsInput) {
         ?.focus();
     });
   };
-  const togglePrimarySidebar = useCallback(() => {
+  const setPrimarySidebarCollapsed = useCallback((collapsed: boolean) => {
     const sidebarState = sidebarToggleStateRef.current;
     const sidebarApi = sidebarState.api;
     if (!sidebarApi || !canTogglePrimarySidebar(sidebarState.activeView)) {
       return false;
     }
-    void updateSnapshot(setSnapshot, () =>
-      sidebarApi.setSidebarCollapsed(!sidebarState.sidebarCollapsed),
-    ).catch((error: unknown) => {
-      console.error("[renderer] updateSnapshot failed", error);
-    });
+    void updateSnapshot(setSnapshot, () => sidebarApi.setSidebarCollapsed(collapsed)).catch(
+      (error: unknown) => {
+        console.error("[renderer] updateSnapshot failed", error);
+      },
+    );
     return true;
   }, []);
+  const togglePrimarySidebar = useCallback(
+    () => setPrimarySidebarCollapsed(!sidebarToggleStateRef.current.sidebarCollapsed),
+    [setPrimarySidebarCollapsed],
+  );
+  const collapsePrimarySidebar = useCallback(
+    () => setPrimarySidebarCollapsed(true),
+    [setPrimarySidebarCollapsed],
+  );
   const togglePalette = (mode: "commands" | "files", source: ChordSource) => {
     if (threadSidebarModel && paletteGates.current[mode](source, performance.now())) {
       setPaletteMode((current) => (current === mode ? null : mode));
@@ -473,5 +481,12 @@ export function useDesktopCommands(input: DesktopCommandsInput) {
         })
       : [];
 
-  return { paletteMode, setPaletteMode, paletteActions, toggleSidePanel, togglePrimarySidebar };
+  return {
+    paletteMode,
+    setPaletteMode,
+    paletteActions,
+    toggleSidePanel,
+    togglePrimarySidebar,
+    collapsePrimarySidebar,
+  };
 }
