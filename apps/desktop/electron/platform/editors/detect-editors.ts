@@ -84,7 +84,6 @@ export function createEditorDetectionHost(): EditorDetectionHost {
   };
 }
 
-/** Command and arguments that hand `workspacePath` to a detected editor. */
 /** A process that opens a checkout in an editor. */
 export interface EditorLaunchCommand {
   readonly command: string;
@@ -92,11 +91,13 @@ export interface EditorLaunchCommand {
   /**
    * True for a launcher (`open`, `gio`, `gtk-launch`) that hands the checkout
    * to the editor and exits: its exit code is the only sign the editor is
-   * gone. False for the editor itself, which keeps running while it is open.
+   * gone. False for the editor's own executable, whose exit code says nothing
+   * about the launch (it may keep running, or hand off to a running instance).
    */
   readonly waitForExit: boolean;
 }
 
+/** The command that hands `workspacePath` to a detected editor. */
 export function buildEditorLaunchCommand(
   editor: DetectedEditor,
   workspacePath: string,

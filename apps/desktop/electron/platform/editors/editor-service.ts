@@ -18,8 +18,9 @@ export interface EditorServiceDeps {
 /**
  * Starts `launch` and settles once its outcome is known. An editor process
  * owns its window for as long as it is open, so it settles when it starts. A
- * launcher exits as soon as it has handed the checkout over, so it settles on
- * its exit code; `open -a` exits non-zero when the app was removed.
+ * launcher hands the checkout over and exits, so it settles on its exit code;
+ * `open -a` exits non-zero when the app was removed. It settles on `exit`, not
+ * `close`: an editor the launcher starts can inherit its stdio and keep it open.
  */
 export function launchEditorCommand({
   command,
@@ -27,9 +28,10 @@ export function launchEditorCommand({
   waitForExit,
 }: EditorLaunchCommand): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Detached so the editor outlives pi-gui and its process group.
     const child = spawn(command, [...args], {
-      detached: !waitForExit,
-      stdio: waitForExit ? ["ignore", "ignore", "pipe"] : "ignore",
+      detached: true,
+      stdio: "ignore",
       windowsHide: true,
     });
     child.once("error", reject);
@@ -40,19 +42,14 @@ export function launchEditorCommand({
       });
       return;
     }
-    let stderr = "";
-    child.stderr?.setEncoding("utf8");
-    child.stderr?.on("data", (chunk: string) => {
-      stderr = (stderr + chunk).slice(-2000);
-    });
-    child.once("close", (code, signal) => {
+    child.once("exit", (code, signal) => {
       if (code === 0) {
         resolve();
         return;
       }
-      const status = signal ? `signal ${signal}` : `exit code ${code}`;
-      const detail = stderr.trim();
-      reject(new Error(`${command} failed with ${status}${detail ? `: ${detail}` : ""}`));
+      reject(
+        new Error(`${command} failed with ${signal ? `signal ${signal}` : `exit code ${code}`}`),
+      );
     });
   });
 }

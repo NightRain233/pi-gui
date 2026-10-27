@@ -349,18 +349,27 @@ test("launch commands hand the checkout to each launch kind", async () => {
   });
 });
 
-/** A real child process that writes `stderr` and exits with `code`. */
-function nodeExiting(code: number, stderr = ""): { command: string; args: readonly string[] } {
-  return {
-    command: process.execPath,
-    args: ["-e", `process.stderr.write(${JSON.stringify(stderr)}); process.exit(${code});`],
-  };
+/** A real child process that exits with `code`. */
+function nodeExiting(code: number): { command: string; args: readonly string[] } {
+  return { command: process.execPath, args: ["-e", `process.exit(${code});`] };
 }
 
-test("a launcher that exits non-zero fails the launch with its error output", async () => {
-  await expect(
-    launchEditorCommand({ ...nodeExiting(1, "Unable to find application"), waitForExit: true }),
-  ).rejects.toThrow(/exit code 1: Unable to find application/);
+test("a launcher that exits non-zero fails the launch", async () => {
+  await expect(launchEditorCommand({ ...nodeExiting(1), waitForExit: true })).rejects.toThrow(
+    /exit code 1/,
+  );
+});
+
+test("a launcher settles when it exits, even while the editor it started keeps running", async () => {
+  // The launcher starts a long-lived child that inherits its stdio, as gio does.
+  const editor = `require("node:child_process").spawn(process.execPath, ["-e", "setTimeout(() => {}, 5000)"], { stdio: "inherit", detached: true }).unref();`;
+  const startedAt = Date.now();
+  await launchEditorCommand({
+    command: process.execPath,
+    args: ["-e", editor],
+    waitForExit: true,
+  });
+  expect(Date.now() - startedAt).toBeLessThan(3000);
 });
 
 test("a launcher that exits zero succeeds", async () => {
