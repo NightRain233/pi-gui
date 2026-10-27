@@ -3526,7 +3526,6 @@ export class DesktopAppStore {
         runningSinceBySession: this.sessionState.runningSinceBySession,
         activeAssistantMessageBySession: this.sessionState.activeAssistantMessageBySession,
         pendingAssistantMessageBySession: this.sessionState.pendingAssistantMessageBySession,
-        activeWorkingActivityBySession: this.sessionState.activeWorkingActivityBySession,
         extensionToolLabels: (ref) =>
           extensionToolLabels(this.runtimeByWorkspace.get(ref.workspaceId)),
       });
