@@ -33,6 +33,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check source and compatibility verifier
+        env:
+          # Intel Node defaults to a 2 GiB heap; typed ESLint needs more.
+          NODE_OPTIONS: --max-old-space-size=6144
         run: |
           pnpm check
           pnpm verify:release-config
