@@ -17,6 +17,17 @@ import { en } from "../../src/i18n/messages/en";
 import { zhCN } from "../../src/i18n/messages/zh-CN";
 
 const englishKeys = new Set(Object.keys(en));
+const pluralCategory = /_(zero|one|two|few|many|other)$/;
+/** Keys English gives plural forms to; other locales may add any CLDR category for them. */
+const pluralBaseKeys = new Set(
+  [...englishKeys]
+    .filter((key) => pluralCategory.test(key))
+    .map((key) => key.replace(pluralCategory, "")),
+);
+
+function isEnglishKeyOrPluralForm(key: string): boolean {
+  return englishKeys.has(key) || pluralBaseKeys.has(key.replace(pluralCategory, ""));
+}
 const localeIds = LOCALES.map((locale) => locale.id);
 
 function placeholders(template: string): readonly string[] {
@@ -52,9 +63,10 @@ test("other locales define only English keys, with non-empty copy and the same p
   for (const locale of LOCALES) {
     for (const [key, copy] of Object.entries(catalogs[locale.id])) {
       const reason = `locale ${locale.id} ${key}`;
-      expect(englishKeys.has(key), `${reason} is not an English key`).toBe(true);
+      expect(isEnglishKeyOrPluralForm(key), `${reason} is not an English key`).toBe(true);
       expect(copy?.trim(), reason).not.toBe("");
-      expect(placeholders(copy ?? ""), reason).toEqual(placeholders(en[key as MessageKey]));
+      const source = en[key as MessageKey] ?? en[key.replace(pluralCategory, "") as MessageKey];
+      expect(placeholders(copy ?? ""), reason).toEqual(placeholders(source));
     }
   }
 });
@@ -96,6 +108,17 @@ test("a counted message picks the CLDR plural form of the active locale", () => 
   const behind = translatorFor("zh-CN", zhCNWithout("models.count"));
   expect(behind("models.count", { count: 1 })).toBe("1 model");
   expect(behind("models.count", { count: 2 })).toBe("2 models");
+  // A language with more plural forms than English can add them, e.g. Polish "2 modele"
+  // but "5 modeli": `Partial<Messages>` accepts the forms and the copy check allows them.
+  const polish: Partial<Messages> = {
+    "models.count_one": "{count} model",
+    "models.count_few": "{count} modele",
+    "models.count_many": "{count} modeli",
+  };
+  expect(new Intl.PluralRules("pl").select(2)).toBe("few");
+  expect(isEnglishKeyOrPluralForm("models.count_few")).toBe(true);
+  expect(isEnglishKeyOrPluralForm("settings.nav.models_few")).toBe(false);
+  expect(Object.keys(polish).every(isEnglishKeyOrPluralForm)).toBe(true);
   // A count on a string without plural forms still resolves the plain message.
   expect(english("settings.nav.models", { count: 3 })).toBe("Models");
 });

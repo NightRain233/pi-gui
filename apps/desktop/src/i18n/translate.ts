@@ -67,7 +67,7 @@ function resolvePluralMessage(
   locale: AppLocale,
   count: number,
 ): string | undefined {
-  const variant = pluralVariantKey(key, pluralRulesFor(locale).select(count)) as MessageKey;
+  const variant = pluralVariantKey(key, pluralRulesFor(locale).select(count)) as keyof Messages;
   const own = catalog[variant] ?? catalog[key];
   if (own !== undefined) {
     return own;
@@ -77,7 +77,7 @@ function resolvePluralMessage(
   const fallbackVariant = pluralVariantKey(
     key,
     pluralRulesFor(defaultLocale).select(count),
-  ) as MessageKey;
+  ) as keyof Messages;
   return fallbackMessages[fallbackVariant] ?? fallbackMessages[key];
 }
 

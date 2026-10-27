@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { resolveLocale } from "../../src/i18n/preference";
 import { translatorFor } from "../../src/i18n/translate";
 import {
+  type DesktopHarness,
   desktopShortcut,
   launchDesktop,
   makeUserDataDir,
@@ -21,6 +22,26 @@ async function openAppearance(window: Page) {
 
 function languagePicker(window: Page) {
   return window.getByRole("combobox", { name: /^(Language|语言)$/ });
+}
+
+async function openSecondWindow(harness: DesktopHarness): Promise<Page> {
+  const existing = new Set(harness.electronApp.windows());
+  // The app's native New Window shortcut is handled in before-input-event.
+  await harness.electronApp.evaluate(
+    ({ BrowserWindow }, modifier) => {
+      BrowserWindow.getAllWindows()[0]?.webContents.sendInputEvent({
+        type: "keyDown",
+        keyCode: "n",
+        modifiers: [modifier, "shift"],
+      });
+    },
+    process.platform === "darwin" ? "meta" : "control",
+  );
+  await expect.poll(() => harness.electronApp.windows().length).toBe(existing.size + 1);
+  const opened = harness.electronApp.windows().find((candidate) => !existing.has(candidate));
+  if (!opened) throw new Error("Expected New Window to create a second desktop window");
+  await opened.waitForLoadState("domcontentloaded");
+  return opened;
 }
 
 test("Settings switches to Simplified Chinese and back, and the choice survives a restart", async () => {
@@ -78,5 +99,25 @@ test("Settings switches to Simplified Chinese and back, and the choice survives 
     await expect(surface).not.toContainText(chinese("settings.appearance.transparency.title"));
   } finally {
     await secondRun.close();
+  }
+});
+
+test("a language picked in one window applies to the other open windows", async () => {
+  test.setTimeout(60_000);
+  const userDataDir = await makeUserDataDir();
+  const workspacePath = await makeWorkspace("settings-language-windows");
+  const harness = await launchDesktop(userDataDir, { initialWorkspaces: [workspacePath] });
+  try {
+    const first = await harness.firstWindow();
+    const second = await openSecondWindow(harness);
+    await openAppearance(first);
+    await languagePicker(first).selectOption("zh-CN");
+    await expect(first.locator("html")).toHaveAttribute("lang", "zh-CN");
+    await expect(second.locator("html")).toHaveAttribute("lang", "zh-CN");
+    const secondSurface = await openAppearance(second);
+    await expect(languagePicker(second)).toHaveValue("zh-CN");
+    await expect(secondSurface).toContainText(chinese("settings.appearance.transparency.title"));
+  } finally {
+    await harness.close();
   }
 });
