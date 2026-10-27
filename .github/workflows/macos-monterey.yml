@@ -35,6 +35,7 @@ jobs:
       - name: Check packaging configuration
         run: |
           pnpm verify:release-config
+          node --test apps/desktop/scripts/monterey-config.test.mjs
           python3 -m unittest discover -s apps/desktop/scripts -p test_verify_monterey.py
 
       - name: Build desktop
@@ -63,10 +64,10 @@ jobs:
       - name: Stage downloadable files
         run: |
           mkdir -p monterey-download
-          cp apps/desktop/release/*.dmg apps/desktop/release/*.zip monterey-download/
+          cp apps/desktop/release/*-macos12-x64.dmg apps/desktop/release/*-macos12-x64.zip monterey-download/
           cp apps/desktop/release/compatibility.json monterey-download/
           cp extras/empty-response-recovery.ts docs/macos-monterey.md monterey-download/
-          shasum -a 256 monterey-download/*.dmg monterey-download/*.zip > monterey-download/SHA256SUMS.txt
+          shasum -a 256 monterey-download/*.dmg monterey-download/*.zip | sed 's#monterey-download/##' > monterey-download/SHA256SUMS.txt
 
       - name: Upload installation files
         uses: actions/upload-artifact@v7
