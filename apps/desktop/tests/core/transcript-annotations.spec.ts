@@ -351,6 +351,9 @@ test("keeps the selection buttons inside the window when the selection ends at i
       BrowserWindow.getAllWindows()[0]?.setSize(760, 700);
     });
     await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(760);
+    // At this width the open sidebar is a drawer whose backdrop takes pointer input; close it.
+    await page.getByTestId("sidebar-toggle").click();
+    await expect(page.getByTestId("sidebar-drawer-backdrop")).toHaveCount(0);
     await waitForTimelineLayout(page);
 
     // Drag across the word that ends furthest right; the buttons would start at its left edge.
