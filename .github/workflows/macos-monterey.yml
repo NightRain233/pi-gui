@@ -45,6 +45,9 @@ jobs:
           xcrun swiftc apps/desktop/resources/notification-status-helper.swift \
             -target x86_64-apple-macosx12.0 -O \
             -o apps/desktop/build/native/pi-gui-notification-status-helper
+          # swiftc leaves Intel executables unsigned; extraFiles are not signed by electron-builder.
+          codesign --force --sign - --timestamp=none \
+            apps/desktop/build/native/pi-gui-notification-status-helper
 
       - name: Package Intel DMG and ZIP
         working-directory: apps/desktop
