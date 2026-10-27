@@ -92,6 +92,10 @@ test("a counted message picks the CLDR plural form of the active locale", () => 
   for (const count of [0, 1, 4]) {
     expect(chinese("models.count", { count })).toBe(`${count} 个模型`);
   }
+  // With no Chinese copy, the English plural forms apply.
+  const behind = translatorFor("zh-CN", zhCNWithout("models.count"));
+  expect(behind("models.count", { count: 1 })).toBe("1 model");
+  expect(behind("models.count", { count: 2 })).toBe("2 models");
   // A count on a string without plural forms still resolves the plain message.
   expect(english("settings.nav.models", { count: 3 })).toBe("Models");
 });

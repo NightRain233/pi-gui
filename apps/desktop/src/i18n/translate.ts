@@ -58,8 +58,8 @@ function pluralRulesFor(locale: AppLocale): Intl.PluralRules {
  *
  * The locale's own copy wins at every step — its plural form first, then its plain
  * message — so a language with a single plural category (Chinese, Japanese) can
- * translate the plain key alone and still read correctly at every count. English
- * only fills in what the locale never translated.
+ * translate the plain key alone and still read correctly at every count. When the
+ * locale has no copy at all, English fills in with its own plural rules.
  */
 function resolvePluralMessage(
   catalog: Partial<Messages>,
@@ -68,7 +68,17 @@ function resolvePluralMessage(
   count: number,
 ): string | undefined {
   const variant = pluralVariantKey(key, pluralRulesFor(locale).select(count)) as MessageKey;
-  return catalog[variant] ?? catalog[key] ?? fallbackMessages[variant] ?? fallbackMessages[key];
+  const own = catalog[variant] ?? catalog[key];
+  if (own !== undefined) {
+    return own;
+  }
+  // English copy takes English plural rules: Chinese reads every count as "other",
+  // which would render "1 models".
+  const fallbackVariant = pluralVariantKey(
+    key,
+    pluralRulesFor(defaultLocale).select(count),
+  ) as MessageKey;
+  return fallbackMessages[fallbackVariant] ?? fallbackMessages[key];
 }
 
 /**
