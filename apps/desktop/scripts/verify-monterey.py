@@ -30,7 +30,13 @@ def check_macos_target(load_commands):
 
 def check_binary(candidate):
     subprocess.run(["lipo", str(candidate), "-verify_arch", "x86_64"], check=True)
-    commands = subprocess.check_output(["otool", "-arch", "x86_64", "-l", str(candidate)], text=True)
+    # otool-classic treats filenames ending in (...) as archive members.
+    with candidate.open("rb") as binary:
+        descriptor = binary.fileno()
+        commands = subprocess.check_output(
+            ["otool", "-arch", "x86_64", "-l", f"/dev/fd/{descriptor}"],
+            pass_fds=(descriptor,), text=True,
+        )
     return check_macos_target(commands)
 
 

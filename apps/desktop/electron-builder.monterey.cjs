@@ -6,6 +6,7 @@ module.exports = {
   buildVersion: process.env.GITHUB_RUN_NUMBER || "1",
   mac: {
     identity: "-",
+    timestamp: "none",
     notarize: false,
     minimumSystemVersion: "12.0",
     target: [
