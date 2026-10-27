@@ -1,0 +1,117 @@
+name: Build Intel Mac (Monterey)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monterey-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'NightRain233/pi-gui'
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      PI_APP_PACKAGE_ARCH: x64
+      PI_APP_TEST_RELEASE_DIR: release
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check source and compatibility verifier
+        run: |
+          pnpm check
+          pnpm verify:release-config
+          python3 -m unittest discover -s apps/desktop/scripts -p test_verify_monterey.py
+
+      - name: Build desktop
+        run: pnpm --filter @pi-gui/desktop run build
+
+      - name: Compile notification helper for Intel Monterey
+        run: |
+          xcrun swiftc apps/desktop/resources/notification-status-helper.swift \
+            -target x86_64-apple-macosx12.0 -O \
+            -o apps/desktop/build/native/pi-gui-notification-status-helper
+
+      - name: Package Intel DMG and ZIP
+        working-directory: apps/desktop
+        run: pnpm exec electron-builder --mac --x64 --publish never --config electron-builder.monterey.cjs
+
+      - name: Verify actual native architecture and deployment targets
+        run: |
+          python3 apps/desktop/scripts/verify-monterey.py \
+            apps/desktop/release/mac/pi-gui.app \
+            > apps/desktop/release/compatibility.json
+          pnpm --dir apps/desktop run verify:packaged-runtime-deps
+
+      - name: Smoke test packaged app and real terminal
+        env:
+          PI_APP_TEST_MODE: background
+        run: |
+          pnpm exec playwright test -c apps/desktop/playwright.config.ts \
+            apps/desktop/tests/production/packaged-smoke.spec.ts \
+            apps/desktop/tests/production/packaged-terminal.spec.ts \
+            apps/desktop/tests/production/release-zip-smoke.spec.ts
+
+      - name: Stage downloadable files
+        run: |
+          mkdir -p monterey-download
+          cp apps/desktop/release/*.dmg apps/desktop/release/*.zip monterey-download/
+          cp apps/desktop/release/compatibility.json monterey-download/
+          cp extras/empty-response-recovery.ts docs/macos-monterey.md monterey-download/
+          shasum -a 256 monterey-download/*.dmg monterey-download/*.zip > monterey-download/SHA256SUMS.txt
+
+      - name: Upload installation files
+        uses: actions/upload-artifact@v7
+        with:
+          name: pi-gui-macos12-x64-${{ github.run_number }}
+          path: monterey-download/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Upload failed test evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: monterey-test-evidence-${{ github.run_number }}
+          path: |
+            test-results/
+            playwright-report/
+            apps/desktop/release/compatibility.json
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: pi-gui-macos12-x64-${{ github.run_number }}
+          path: monterey-download
+      - name: Publish verified Intel build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="monterey-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" monterey-download/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "pi-gui · Intel / macOS Monterey · build ${GITHUB_RUN_NUMBER}" \
+            --notes-file docs/macos-monterey.md --latest=false

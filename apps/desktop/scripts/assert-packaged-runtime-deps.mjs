@@ -91,12 +91,14 @@ const packagePlatform = (process.env.PI_APP_PACKAGE_PLATFORM ?? process.platform
   .trim()
   .toLowerCase();
 const releaseDir = path.resolve(desktopDir, process.env.PI_APP_TEST_RELEASE_DIR ?? "release");
+const macOutputDir =
+  (process.env.PI_APP_PACKAGE_ARCH ?? process.arch) === "x64" ? "mac" : "mac-arm64";
 const asarPath = resolveAsarPath(releaseDir, packagePlatform);
 const notificationHelperPath =
   packagePlatform === "darwin"
     ? path.join(
         releaseDir,
-        "mac-arm64",
+        macOutputDir,
         "pi-gui.app",
         "Contents",
         "MacOS",
@@ -216,7 +218,7 @@ console.log(`Verified packaged runtime dependencies in ${asarPath}`);
 
 function resolveAsarPath(releaseDir, packagePlatform) {
   if (packagePlatform === "darwin") {
-    return path.join(releaseDir, "mac-arm64", "pi-gui.app", "Contents", "Resources", "app.asar");
+    return path.join(releaseDir, macOutputDir, "pi-gui.app", "Contents", "Resources", "app.asar");
   }
 
   if (packagePlatform === "linux") {
